@@ -28,7 +28,7 @@ client.on('guildScheduledEventCreate', async (event) => {
     : null;
 
   const embed = new EmbedBuilder()
-    .setTitle(event.name) // ←【】を削除
+    .setTitle(event.name)
     .addFields(
       { name: '開催日', value: formattedDate, inline: false },
       { name: '説明', value: (event.description || '（説明なし）').trim(), inline: false }
@@ -54,13 +54,19 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
     );
     if (!channel) return;
 
+    const date = new Date(newEvent.scheduledStartTimestamp);
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}〜`;
+
+    const descriptionText = `**開始時間**\n${formattedDate}\n\n**説明**\n2034年に向けて世の中はどうなっていくのか？AIはどのように進歩してくのか？\n\n具体的なタイムラインに沿った社会変化、各フェーズで要求される適応能力、変化の波に乗るためのポジショニングを考えます。`;
+
     const coverImage = newEvent.coverImage
       ? `https://cdn.discordapp.com/app-events/${newEvent.id}/${newEvent.coverImage}.png`
       : null;
 
     const embed = new EmbedBuilder()
-      .setTitle(newEvent.name) // ←【】を削除
-      .setDescription((newEvent.description || '（説明なし）').trim())
+      .setTitle(newEvent.name)
+      .setDescription(descriptionText)
       .setColor(0xFFB347);
 
     if (coverImage) {
@@ -72,7 +78,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       embeds: [embed]
     });
 
-    await channel.send(`[⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯](${newEvent.url})`);
+    await channel.send(`[⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯](${newEvent.url})`);
   }
 });
 
