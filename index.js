@@ -72,7 +72,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       embeds: [embed]
     });
 
-    await channel.send(`────────────(${newEvent.url})`);
+    await channel.send(`[──────────────](${newEvent.url})`);
   }
 });
 
