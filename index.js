@@ -28,7 +28,7 @@ client.on('guildScheduledEventCreate', async (event) => {
     : null;
 
   const embed = new EmbedBuilder()
-    .setTitle(`【${event.name}】`)
+    .setTitle(`${event.name}`)
     .addFields(
       { name: '開催日', value: formattedDate, inline: false },
       { name: '説明', value: (event.description || '（説明なし）').trim(), inline: false }
@@ -72,7 +72,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       embeds: [embed]
     });
 
-    await channel.send(`▶︎ [ここをタップして参加](${newEvent.url})`);
+    await channel.send(newEvent.url);
   }
 });
 
