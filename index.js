@@ -30,11 +30,13 @@ client.on('guildScheduledEventCreate', async (event) => {
   const minute = date.getMinutes().toString().padStart(2, '0');
   const formattedDate = `${year}年${month}月${day}日 (${weekday}) ${hour}:${minute}`;
 
+  const description = (event.description || '（説明なし）').trim();
+
   const message = `@everyone\n📅 新しいイベントが追加されました！\n\n` +
     `**【${event.name}】**\n` +
     `**開催日**：${formattedDate}\n` +
-    `**説明**：${event.description || '（説明なし）'}\n\n` +
-    `   ➡︎ [詳細を見る](${event.url})`;
+    `**説明**：${description}\n` +
+    `➡︎ [詳細を見る](${event.url})`;
 
   channel.send(message);
 });
@@ -49,7 +51,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
 
     const message = `@everyone\n📣 **イベントが始まりました！**\n` +
       `**【${newEvent.name}】**\n` +
-      `   ➡︎ [タップで参加する](${newEvent.url})`;
+      `➡︎ [タップで参加する](${newEvent.url})`;
 
     channel.send(message);
   }
