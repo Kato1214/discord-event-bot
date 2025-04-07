@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 require('dotenv').config();
 
 const client = new Client({
@@ -12,7 +12,7 @@ client.once('ready', () => {
   console.log(`✅ Botログイン成功：${client.user.tag}`);
 });
 
-// 新しいイベントが作成されたときの通知
+// 📅 イベント作成通知
 client.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(
     ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
@@ -23,45 +23,56 @@ client.on('guildScheduledEventCreate', async (event) => {
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
   const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
-  await channel.send(`@everyone\n📅 **新しいイベントが追加されました！**`);
+  const coverImage = event.coverImage
+    ? `https://cdn.discordapp.com/app-events/${event.id}/${event.coverImage}.png`
+    : null;
 
-  await channel.send({
-    embeds: [
-      {
-        title: event.name.replace(/[【】]/g, ''),
-        description:
-          `**開催日**\n${formattedDate}\n\n` +
-          `**説明**\n${event.description || '（説明なし）'}`,
-        color: 0x00aaff
-      }
-    ]
+  const embed = new EmbedBuilder()
+    .setTitle(`${event.name}`)
+    .addFields(
+      { name: '開催日', value: formattedDate, inline: false },
+      { name: '説明', value: (event.description || '（説明なし）').trim(), inline: false }
+    )
+    .setURL(event.url)
+    .setColor(0x2F3136);
+
+  if (coverImage) {
+    embed.setImage(coverImage);
+  }
+
+  channel.send({
+    content: '@everyone\n📅 **新しいイベントが追加されました！**',
+    embeds: [embed]
   });
-
-  // URLを区切り線に埋め込み（非表示にしてカードだけ出す）
-  await channel.send(`────────────── ${event.url} ──────────────`);
 });
 
-// イベントが開始されたときの通知
+// 📣 イベント開始通知（改訂版）
 client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
-  if (oldEvent.status !== newEvent.status && newEvent.status === 2) { // ACTIVE
+  if (oldEvent.status !== newEvent.status && newEvent.status === 2) {
     const channel = newEvent.guild.channels.cache.find(
       ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
     );
     if (!channel) return;
 
-    await channel.send(`@everyone\n📣 **イベントが始まりました！**`);
+    const coverImage = newEvent.coverImage
+      ? `https://cdn.discordapp.com/app-events/${newEvent.id}/${newEvent.coverImage}.png`
+      : null;
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${newEvent.name}`)
+      .setDescription((newEvent.description || '（説明なし）').trim())
+      .setColor(0xFFB347);
+
+    if (coverImage) {
+      embed.setImage(coverImage);
+    }
 
     await channel.send({
-      embeds: [
-        {
-          title: newEvent.name.replace(/[【】]/g, ''),
-          description: newEvent.description || '（説明なし）',
-          color: 0xff9900
-        }
-      ]
+      content: '@everyone\n📣 **イベントが始まりました！**',
+      embeds: [embed]
     });
 
-    await channel.send(`────────────── ${newEvent.url} ──────────────`);
+    await channel.send(`────────────────────────(${newEvent.url})`);
   }
 });
 
