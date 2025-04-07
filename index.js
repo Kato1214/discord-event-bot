@@ -23,6 +23,10 @@ client.on('guildScheduledEventCreate', async (event) => {
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
   const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
+  const coverImage = event.coverImage
+    ? `https://cdn.discordapp.com/app-events/${event.id}/${event.coverImage}.png`
+    : null;
+
   const embed = new EmbedBuilder()
     .setTitle(`【${event.name}】`)
     .addFields(
@@ -30,8 +34,11 @@ client.on('guildScheduledEventCreate', async (event) => {
       { name: '説明', value: (event.description || '（説明なし）').trim(), inline: false }
     )
     .setURL(event.url)
-    .setColor(0x2F3136) // ダークグレー
-    .setFooter({ text: '▶︎ 詳細を見るにはタイトルをタップ' });
+    .setColor(0x2F3136);
+
+  if (coverImage) {
+    embed.setImage(coverImage);
+  }
 
   channel.send({
     content: '@everyone\n📅 **新しいイベントが追加されました！**',
@@ -41,20 +48,26 @@ client.on('guildScheduledEventCreate', async (event) => {
 
 // 📣 イベントが開始されたときの通知
 client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
-  if (oldEvent.status !== newEvent.status && newEvent.status === 2) { // 2 = ACTIVE
+  if (oldEvent.status !== newEvent.status && newEvent.status === 2) {
     const channel = newEvent.guild.channels.cache.find(
       ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
     );
     if (!channel) return;
 
+    const coverImage = newEvent.coverImage
+      ? `https://cdn.discordapp.com/app-events/${newEvent.id}/${newEvent.coverImage}.png`
+      : null;
+
     const embed = new EmbedBuilder()
       .setTitle(`【${newEvent.name}】`)
-      .setDescription(`[▶︎ ここをタップして参加](${newEvent.url})`)
-      .setColor(0xFFB347) // オレンジで注意喚起
-      .setFooter({ text: 'イベントはすでに始まっています！' });
+      .setColor(0xFFB347);
+
+    if (coverImage) {
+      embed.setImage(coverImage);
+    }
 
     channel.send({
-      content: '@everyone\n📣 **イベントが始まりました！**',
+      content: `@everyone\n📣 **イベントが始まりました！**\n**▶︎ [ここをタップして参加](${newEvent.url})**`,
       embeds: [embed]
     });
   }
