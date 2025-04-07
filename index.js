@@ -12,7 +12,7 @@ client.once('ready', () => {
   console.log(`✅ Botログイン成功：${client.user.tag}`);
 });
 
-// 📅 新しいイベントが作成されたときの通知
+// 📅 イベント作成通知
 client.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(
     ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
@@ -46,7 +46,7 @@ client.on('guildScheduledEventCreate', async (event) => {
   });
 });
 
-// 📣 イベントが開始されたときの通知
+// 📣 イベント開始通知（改訂版）
 client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   if (oldEvent.status !== newEvent.status && newEvent.status === 2) {
     const channel = newEvent.guild.channels.cache.find(
@@ -60,16 +60,19 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
 
     const embed = new EmbedBuilder()
       .setTitle(`【${newEvent.name}】`)
+      .setDescription((newEvent.description || '（説明なし）').trim())
       .setColor(0xFFB347);
 
     if (coverImage) {
       embed.setImage(coverImage);
     }
 
-    channel.send({
-      content: `@everyone\n📣 **イベントが始まりました！**\n**▶︎ [ここをタップして参加](${newEvent.url})**`,
+    await channel.send({
+      content: '@everyone\n📣 **イベントが始まりました！**',
       embeds: [embed]
     });
+
+    await channel.send(`▶︎ [ここをタップして参加](${newEvent.url})`);
   }
 });
 
