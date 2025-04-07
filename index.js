@@ -28,7 +28,7 @@ client.on('guildScheduledEventCreate', async (event) => {
     : null;
 
   const embed = new EmbedBuilder()
-    .setTitle(`${event.name}`)
+    .setTitle(event.name) // ←【】を削除
     .addFields(
       { name: '開催日', value: formattedDate, inline: false },
       { name: '説明', value: (event.description || '（説明なし）').trim(), inline: false }
@@ -59,7 +59,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       : null;
 
     const embed = new EmbedBuilder()
-      .setTitle(`${newEvent.name}`)
+      .setTitle(newEvent.name) // ←【】を削除
       .setDescription((newEvent.description || '（説明なし）').trim())
       .setColor(0xFFB347);
 
@@ -72,7 +72,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       embeds: [embed]
     });
 
-    await channel.send(`────────────────────────(${newEvent.url})`);
+    await channel.send(`────────────(${newEvent.url})`);
   }
 });
 
