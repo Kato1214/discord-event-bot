@@ -1,41 +1,57 @@
-// index.js
-const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 require('dotenv').config();
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildScheduledEvents
-  ],
-  partials: [Partials.GuildScheduledEvent]
+  ]
 });
 
-// ✅ Bot起動時
-client.once(Events.ClientReady, () => {
+client.once('ready', () => {
   console.log(`✅ Botログイン成功：${client.user.tag}`);
 });
 
-// ✅ イベント作成通知
-client.on(Events.GuildScheduledEventCreate, async (event) => {
-  const channel = event.guild.channels.cache.find(c => c.name === 'イベントのお知らせ' && c.isTextBased());
+// 新しいイベントが作成されたときの通知
+client.on('guildScheduledEventCreate', async (event) => {
+  const channel = event.guild.channels.cache.find(
+    ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
+  );
   if (!channel) return;
 
-  const timestamp = Math.floor(event.scheduledStartTimestamp / 1000);
+  // 開催日を「2025年4月12日 (土) 21:00」形式に整形
+  const date = new Date(event.scheduledStartTimestamp);
+  const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekday = weekdays[date.getDay()];
+  const hour = date.getHours().toString().padStart(2, '0');
+  const minute = date.getMinutes().toString().padStart(2, '0');
+  const formattedDate = `${year}年${month}月${day}日 (${weekday}) ${hour}:${minute}`;
 
-  await channel.send({
-    content: `@everyone\n📅 **新しいイベントが追加されました！**\n\n**タイトル**：${event.name}\n**開催日**：<t:${timestamp}:F>\n**説明**：${event.description || '（説明なし）'}\n\n**参加URL**：[イベントを見る](${event.url})`
-  });
+  const message = `@everyone\n📅 新しいイベントが追加されました！\n\n` +
+    `**【${event.name}】**\n` +
+    `**開催日**：${formattedDate}\n` +
+    `**説明**：${event.description || '（説明なし）'}\n\n` +
+    `   ➡︎ [詳細を見る](${event.url})`;
+
+  channel.send(message);
 });
 
-// ✅ イベント開始通知
-client.on(Events.GuildScheduledEventUpdate, async (oldEvent, newEvent) => {
-  if (oldEvent.status !== newEvent.status && newEvent.status === 2) { // status 2 = ACTIVE
-    const channel = newEvent.guild.channels.cache.find(c => c.name === 'イベントのお知らせ' && c.isTextBased());
+// イベントが開始されたときの通知
+client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
+  if (oldEvent.status !== newEvent.status && newEvent.status === 2) { // 2 = ACTIVE
+    const channel = newEvent.guild.channels.cache.find(
+      ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
+    );
     if (!channel) return;
 
-    await channel.send({
-      content: `@everyone\n📣 **イベントが始まりました！**\n\n**タイトル**：${newEvent.name}\n➡︎ [タップで参加する](${newEvent.url})`
-    });
+    const message = `@everyone\n📣 **イベントが始まりました！**\n` +
+      `**【${newEvent.name}】**\n` +
+      `   ➡︎ [タップで参加する](${newEvent.url})`;
+
+    channel.send(message);
   }
 });
 
