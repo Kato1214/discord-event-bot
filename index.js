@@ -1,4 +1,5 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
+const axios = require('axios');
 require('dotenv').config();
 
 const client = new Client({
@@ -12,7 +13,33 @@ client.once('ready', () => {
   console.log(`✅ Botログイン成功：${client.user.tag}`);
 });
 
-// 📅 イベント作成通知
+function formatXPost(eventName, dateStr, description, url, isStart = false) {
+  const prefix = isStart ? '📣 イベントが始まりました！' : '📅新しいイベントが追加されました！';
+  const maxDescLength = 100;
+  const cleanDesc = (description || '').replace(/\n/g, ' ').trim();
+  const shortDesc = cleanDesc.length > maxDescLength
+    ? cleanDesc.slice(0, maxDescLength).trim() + '…'
+    : cleanDesc;
+  return `${prefix}\n\n【${eventName}】\n\n${isStart ? '開始時間' : '開催日'}\n${dateStr}\n\n説明\n${shortDesc}\n${url}`;
+}
+
+async function postToX(text) {
+  try {
+    await axios.post('https://api.twitter.com/2/tweets', {
+      text
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('✅ Xに投稿しました');
+  } catch (err) {
+    console.error('❌ X投稿エラー:', err.response?.data || err.message);
+  }
+}
+
+// 新しいイベントが作成されたとき
 client.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(
     ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
@@ -23,30 +50,26 @@ client.on('guildScheduledEventCreate', async (event) => {
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
   const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
-  const coverImage = event.coverImage
-    ? `https://cdn.discordapp.com/app-events/${event.id}/${event.coverImage}.png`
-    : null;
-
-  const embed = new EmbedBuilder()
-    .setTitle(event.name)
-    .addFields(
-      { name: '開催日', value: formattedDate, inline: false },
-      { name: '説明', value: (event.description || '（説明なし）').trim(), inline: false }
-    )
-    .setURL(event.url)
-    .setColor(0x2F3136);
-
-  if (coverImage) {
-    embed.setImage(coverImage);
-  }
-
-  channel.send({
-    content: '@everyone\n📅 **新しいイベントが追加されました！**',
-    embeds: [embed]
+  await channel.send(`@everyone\n📅 **新しいイベントが追加されました！**`);
+  await channel.send({
+    embeds: [
+      {
+        title: event.name.replace(/[【】]/g, ''),
+        description:
+          `**開催日**\n${formattedDate}\n\n` +
+          `**説明**\n${event.description || '（説明なし）'}`,
+        color: 0x00aaff
+      }
+    ]
   });
+  await channel.send(`────────────── ${event.url} ──────────────`);
+
+  // Xにも投稿
+  const xText = formatXPost(event.name, formattedDate, event.description, event.url);
+  await postToX(xText);
 });
 
-// 📣 イベント開始通知（改訂版）
+// イベントが開始されたとき
 client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   if (oldEvent.status !== newEvent.status && newEvent.status === 2) {
     const channel = newEvent.guild.channels.cache.find(
@@ -58,27 +81,21 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
     const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
     const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}〜`;
 
-    const descriptionText = `**開始時間**\n${formattedDate}\n\n**説明**\n2034年に向けて世の中はどうなっていくのか？AIはどのように進歩してくのか？\n\n具体的なタイムラインに沿った社会変化、各フェーズで要求される適応能力、変化の波に乗るためのポジショニングを考えます。`;
-
-    const coverImage = newEvent.coverImage
-      ? `https://cdn.discordapp.com/app-events/${newEvent.id}/${newEvent.coverImage}.png`
-      : null;
-
-    const embed = new EmbedBuilder()
-      .setTitle(newEvent.name)
-      .setDescription(descriptionText)
-      .setColor(0xFFB347);
-
-    if (coverImage) {
-      embed.setImage(coverImage);
-    }
-
+    await channel.send(`@everyone\n📣 **イベントが始まりました！**`);
     await channel.send({
-      content: '@everyone\n📣 **イベントが始まりました！**',
-      embeds: [embed]
+      embeds: [
+        {
+          title: newEvent.name.replace(/[【】]/g, ''),
+          description: newEvent.description || '（説明なし）',
+          color: 0xff9900
+        }
+      ]
     });
+    await channel.send(`────────────── ${newEvent.url} ──────────────`);
 
-    await channel.send(`[⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯](${newEvent.url})`);
+    // Xにも投稿
+    const xText = formatXPost(newEvent.name, formattedDate, newEvent.description, newEvent.url, true);
+    await postToX(xText);
   }
 });
 
