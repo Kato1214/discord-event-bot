@@ -24,6 +24,7 @@ function formatXPost(eventName, dateStr, description, url, isStart = false) {
 }
 
 async function postToX(text) {
+  console.log('📝 Xに投稿する内容:\n', text); // 投稿前ログ出力
   try {
     await axios.post('https://api.twitter.com/2/tweets', {
       text
@@ -46,7 +47,10 @@ client.on('guildScheduledEventCreate', async (event) => {
   );
   if (!channel) return;
 
+  // JST変換
   const date = new Date(event.scheduledStartTimestamp);
+  date.setHours(date.getHours() + 9);
+
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
   const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
@@ -62,9 +66,8 @@ client.on('guildScheduledEventCreate', async (event) => {
       }
     ]
   });
-  await channel.send(`────────────── ${event.url} ──────────────`);
+  await channel.send(`[⎯⎯⎯⎯⎯⎯⎯⎯] ${event.url} `);
 
-  // Xにも投稿
   const xText = formatXPost(event.name, formattedDate, event.description, event.url);
   await postToX(xText);
 });
@@ -77,7 +80,10 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
     );
     if (!channel) return;
 
+    // JST変換
     const date = new Date(newEvent.scheduledStartTimestamp);
+    date.setHours(date.getHours() + 9);
+
     const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
     const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]}) ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}〜`;
 
@@ -91,9 +97,8 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
         }
       ]
     });
-    await channel.send(`────────────── ${newEvent.url} ──────────────`);
+    await channel.send(`[⎯⎯⎯⎯⎯⎯⎯⎯] ${newEvent.url} `);
 
-    // Xにも投稿
     const xText = formatXPost(newEvent.name, formattedDate, newEvent.description, newEvent.url, true);
     await postToX(xText);
   }
