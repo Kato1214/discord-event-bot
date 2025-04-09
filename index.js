@@ -1,7 +1,8 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const axios = require('axios');
+const { TwitterApi } = require('twitter-api-v2');
 require('dotenv').config();
 
+// Discordクライアント設定
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -13,6 +14,15 @@ client.once('ready', () => {
   console.log(`✅ Botログイン成功：${client.user.tag}`);
 });
 
+// Twitterクライアント（OAuth 1.0a 認証）
+const twitterClient = new TwitterApi({
+  appKey: process.env.TWITTER_API_KEY,
+  appSecret: process.env.TWITTER_API_SECRET,
+  accessToken: process.env.TWITTER_ACCESS_TOKEN,
+  accessSecret: process.env.TWITTER_ACCESS_SECRET
+});
+
+// 投稿文整形
 function formatXPost(eventName, dateStr, description, url, isStart = false) {
   const prefix = isStart ? '📣 イベントが始まりました！' : '📅新しいイベントが追加されました！';
   const maxDescLength = 100;
@@ -23,20 +33,14 @@ function formatXPost(eventName, dateStr, description, url, isStart = false) {
   return `${prefix}\n\n【${eventName}】\n\n${isStart ? '開始時間' : '開催日'}\n${dateStr}\n\n説明\n${shortDesc}\n${url}`;
 }
 
+// Xに投稿する関数
 async function postToX(text) {
-  console.log('📝 Xに投稿する内容:\n', text); // 投稿前ログ出力
+  console.log('📝 Xに投稿する内容:\n', text);
   try {
-    await axios.post('https://api.twitter.com/2/tweets', {
-      text
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    await twitterClient.v1.tweet(text);
     console.log('✅ Xに投稿しました');
   } catch (err) {
-    console.error('❌ X投稿エラー:', err.response?.data || err.message);
+    console.error('❌ X投稿エラー:', err);
   }
 }
 
