@@ -30,7 +30,7 @@ async function createCalendarEvent(event) {
   };
 
   const res = await calendar.events.insert({
-    calendarId: 'primary',
+    calendarId: 'aixnexus2025@gmail.com',
     resource: calendarEvent,
   });
 
