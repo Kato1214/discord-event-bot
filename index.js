@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits } = require('discord.js');
+const { createCalendarEvent } = require('./googleCalendar');
 require('dotenv').config();
 
 const client = new Client({
@@ -12,6 +13,7 @@ client.once('ready', () => {
   console.log(`✅ Botログイン成功：${client.user.tag}`);
 });
 
+// 📅 イベント作成時：DiscordとGoogleカレンダーに登録
 client.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(
     ch => ch.name === 'イベントのお知らせ' && ch.isTextBased()
@@ -37,8 +39,18 @@ client.on('guildScheduledEventCreate', async (event) => {
     ]
   });
   await channel.send(`[⎯⎯⎯⎯⎯⎯⎯](${event.url})`);
+
+  // 🗓 Googleカレンダーに登録
+  try {
+    const calendarId = await createCalendarEvent(event);
+    console.log('✅ GoogleカレンダーイベントID:', calendarId);
+    // ※今後、calendarIdを保存しておくと「更新」機能が追加できます
+  } catch (error) {
+    console.error('❌ Googleカレンダー登録エラー:', error.message);
+  }
 });
 
+// 🔔 イベント開始通知（変更ではなく「開始」）
 client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   if (oldEvent.status !== newEvent.status && newEvent.status === 2) {
     const channel = newEvent.guild.channels.cache.find(
