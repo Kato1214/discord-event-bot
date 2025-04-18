@@ -58,7 +58,7 @@ async function updateCalendarEvent(googleEventId, newEvent) {
   };
 
   const res = await calendar.events.update({
-    calendarId: 'primary',
+    calendarId: 'aixnexus2025@gmail.com',
     eventId: googleEventId,
     resource: updatedEvent,
   });
