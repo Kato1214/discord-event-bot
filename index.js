@@ -29,7 +29,6 @@ client.on('guildScheduledEventCreate', async (event) => {
   );
   if (!channel) return;
 
-  // Googleカレンダーに登録
   try {
     const calendarId = await createCalendarEvent(event);
     const mappings = loadMappings();
@@ -40,7 +39,6 @@ client.on('guildScheduledEventCreate', async (event) => {
     console.error('❌ Googleカレンダー登録エラー:', error.message);
   }
 
-  // JST表示
   const date = new Date(event.scheduledStartTimestamp);
   date.setHours(date.getHours() + 9);
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
