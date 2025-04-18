@@ -4,7 +4,11 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits, GuildScheduledEventStatus } = require('discord.js');
+const {
+  Client,
+  GatewayIntentBits,
+  GuildScheduledEventStatus,
+} = require('discord.js');
 require('dotenv').config();
 
 const {
@@ -14,7 +18,7 @@ const {
 } = require('./googleCalendar');
 
 /*───────────────────────────────────
-  Discord ⇔ Google イベント ID 対応表
+  Discord ⇔ Google イベント ID 対応テーブル
 ───────────────────────────────────*/
 const mappingsPath = path.join(__dirname, 'eventMappings.json');
 
@@ -48,7 +52,7 @@ function formatJST(ts) {
 }
 
 /*───────────────────────────
-  1. 設定した Discord イベントが作成されたとき
+  1. イベント作成 → Google へ登録
 ───────────────────────────*/
 client.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(
@@ -57,9 +61,8 @@ client.on('guildScheduledEventCreate', async (event) => {
   if (!channel) return;
 
   /* Google カレンダーへ登録 */
-  let gEventId = '';
   try {
-    gEventId = await createCalendarEvent(event);
+    const gEventId = await createCalendarEvent(event);
     const map = loadMappings();
     map[event.id] = gEventId;
     saveMappings(map);
@@ -94,10 +97,10 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   const map      = loadMappings();
   const gEventId = map[newEvent.id];
 
-  /*――― キャンセル ―――*/
+  /*――― キャンセル（ステータス変更）―――*/
   if (
     oldEvent.status !== newEvent.status &&
-    newEvent.status === GuildScheduledEventStatus.Canceled   // ★ 修正ポイント
+    newEvent.status === GuildScheduledEventStatus.Canceled
   ) {
     if (gEventId) {
       try {
@@ -109,7 +112,7 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       }
     }
     await channel.send(`@everyone\n🗑️ **イベントがキャンセルされました！**\n> ${newEvent.name}`);
-    return;   // 開始・変更ロジックをスキップ
+    return;
   }
 
   /*――― 開始 ―――*/
@@ -131,6 +134,24 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
     }
   } else {
     console.warn('⚠️ GoogleイベントID が見つからず更新できません');
+  }
+});
+
+/*───────────────────────────
+  3. Discord からイベントそのものが削除されたとき
+───────────────────────────*/
+client.on('guildScheduledEventDelete', async (event) => {
+  const map      = loadMappings();
+  const gEventId = map[event.id];
+  if (!gEventId) return;  // 既に削除済み／登録されていない
+
+  try {
+    await deleteCalendarEvent(gEventId);
+    delete map[event.id];
+    saveMappings(map);
+    console.log('🗑️ Discord削除 → Google も削除完了:', gEventId);
+  } catch (e) {
+    console.error('❌ Googleカレンダー削除エラー:', e.message);
   }
 });
 
