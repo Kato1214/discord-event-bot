@@ -1,7 +1,9 @@
 const { google } = require('googleapis');
 
-// Render環境変数から credentials を読み込む
-const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+// Render の環境変数から credentials を復元（\\n → \n）
+const credentials = JSON.parse(
+  process.env.GOOGLE_CREDENTIALS.replace(/\\n/g, '\n')
+);
 
 const auth = new google.auth.GoogleAuth({
   credentials,
@@ -13,19 +15,13 @@ async function createCalendarEvent(event) {
   const calendar = google.calendar({ version: 'v3', auth: authClient });
 
   const start = new Date(event.scheduledStartTimestamp);
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // 1時間枠
+  const end = new Date(start.getTime() + 60 * 60 * 1000); // 開始から1時間後
 
   const calendarEvent = {
     summary: event.name,
     description: event.description || '',
-    start: {
-      dateTime: start.toISOString(),
-      timeZone: 'Asia/Tokyo',
-    },
-    end: {
-      dateTime: end.toISOString(),
-      timeZone: 'Asia/Tokyo',
-    },
+    start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
+    end: { dateTime: end.toISOString(), timeZone: 'Asia/Tokyo' },
   };
 
   const res = await calendar.events.insert({
@@ -47,14 +43,8 @@ async function updateCalendarEvent(googleEventId, newEvent) {
   const updatedEvent = {
     summary: newEvent.name,
     description: newEvent.description || '',
-    start: {
-      dateTime: start.toISOString(),
-      timeZone: 'Asia/Tokyo',
-    },
-    end: {
-      dateTime: end.toISOString(),
-      timeZone: 'Asia/Tokyo',
-    },
+    start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
+    end: { dateTime: end.toISOString(), timeZone: 'Asia/Tokyo' },
   };
 
   const res = await calendar.events.update({
@@ -68,5 +58,5 @@ async function updateCalendarEvent(googleEventId, newEvent) {
 
 module.exports = {
   createCalendarEvent,
-  updateCalendarEvent
+  updateCalendarEvent,
 };
