@@ -11,28 +11,13 @@ async function createCalendarEvent(event) {
   const calendar = google.calendar({ version: 'v3', auth: authClient });
 
   const start = new Date(event.scheduledStartTimestamp);
-<<<<<<< HEAD
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // 開始から1時間枠
-=======
   const end = new Date(start.getTime() + 60 * 60 * 1000);
->>>>>>> 828231e (Add Google Calendar integration and credentials)
 
   const calendarEvent = {
     summary: event.name,
     description: event.description || '',
-<<<<<<< HEAD
-    start: {
-      dateTime: start.toISOString(),
-      timeZone: 'Asia/Tokyo',
-    },
-    end: {
-      dateTime: end.toISOString(),
-      timeZone: 'Asia/Tokyo',
-    },
-=======
     start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
     end: { dateTime: end.toISOString(), timeZone: 'Asia/Tokyo' },
->>>>>>> 828231e (Add Google Calendar integration and credentials)
   };
 
   const res = await calendar.events.insert({
@@ -44,10 +29,6 @@ async function createCalendarEvent(event) {
   return res.data.id;
 }
 
-<<<<<<< HEAD
-module.exports = {
-  createCalendarEvent,
-=======
 async function updateCalendarEvent(googleEventId, newEvent) {
   const authClient = await auth.getClient();
   const calendar = google.calendar({ version: 'v3', auth: authClient });
@@ -74,5 +55,4 @@ async function updateCalendarEvent(googleEventId, newEvent) {
 module.exports = {
   createCalendarEvent,
   updateCalendarEvent
->>>>>>> 828231e (Add Google Calendar integration and credentials)
 };
