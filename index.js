@@ -1,6 +1,10 @@
+/*───────────────────────────────────
+ *  Discord → Google Calendar 連携 Bot
+ *───────────────────────────────────*/
+
 const fs   = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, GuildScheduledEventStatus } = require('discord.js');
 require('dotenv').config();
 
 const {
@@ -44,7 +48,7 @@ function formatJST(ts) {
 }
 
 /*───────────────────────────
-  1. Discord でイベント作成 → Google へ登録
+  1. 設定した Discord イベントが作成されたとき
 ───────────────────────────*/
 client.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(
@@ -52,19 +56,19 @@ client.on('guildScheduledEventCreate', async (event) => {
   );
   if (!channel) return;
 
-  // Google カレンダーへ登録
+  /* Google カレンダーへ登録 */
   let gEventId = '';
   try {
     gEventId = await createCalendarEvent(event);
     const map = loadMappings();
-    map[event.id] = gEventId;     // DiscordID → GoogleID
+    map[event.id] = gEventId;
     saveMappings(map);
     console.log('✅ GoogleカレンダーイベントIDを保存:', gEventId);
   } catch (e) {
     console.error('❌ Googleカレンダー登録エラー:', e.message);
   }
 
-  // Discord に通知
+  /* Discord に通知 */
   await channel.send(`@everyone\n📅 **新しいイベントが追加されました！**`);
   await channel.send({
     embeds: [{
@@ -79,7 +83,7 @@ client.on('guildScheduledEventCreate', async (event) => {
 });
 
 /*───────────────────────────
-  2. 更新・開始・キャンセル
+  2. イベントの更新・開始・キャンセル
 ───────────────────────────*/
 client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   const channel = newEvent.guild.channels.cache.find(
@@ -91,7 +95,10 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   const gEventId = map[newEvent.id];
 
   /*――― キャンセル ―――*/
-  if (oldEvent.status !== newEvent.status && newEvent.status === 3) {
+  if (
+    oldEvent.status !== newEvent.status &&
+    newEvent.status === GuildScheduledEventStatus.Canceled   // ★ 修正ポイント
+  ) {
     if (gEventId) {
       try {
         await deleteCalendarEvent(gEventId);
@@ -102,11 +109,14 @@ client.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
       }
     }
     await channel.send(`@everyone\n🗑️ **イベントがキャンセルされました！**\n> ${newEvent.name}`);
-    return;
+    return;   // 開始・変更ロジックをスキップ
   }
 
   /*――― 開始 ―――*/
-  if (oldEvent.status !== newEvent.status && newEvent.status === 2) {
+  if (
+    oldEvent.status !== newEvent.status &&
+    newEvent.status === GuildScheduledEventStatus.Active
+  ) {
     await channel.send(`@everyone\n📣 **イベントが始まりました！**\n> ${newEvent.name}`);
     await channel.send(newEvent.url);
     return;
