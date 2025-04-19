@@ -81,21 +81,24 @@ async function upsertCalendarEvent(discordEvent, googleEventId = null) {
         eventId: googleEventId,
         resource: eventResource,
       });
+      console.log('🔁 Googleカレンダーを更新しました:', res.data.id);
       return res.data.id;
     } catch (e) {
-      console.error('⚠️ Googleイベントの更新に失敗したため、新規作成します:', e.message);
-      // fallback: insert new if update fails
+      console.warn('⚠️ Googleイベントの更新に失敗したため、新規登録に切り替え:', e.message);
+      // ここで insert にフォールバック
     }
   }
 
+  // 初回 or update 失敗時のみ insert
   const res = await calendar.events.insert({
     calendarId: CALENDAR_ID,
     resource: eventResource,
   });
 
-  console.log('✅ Googleカレンダーに再登録:', res.data.htmlLink);
+  console.log('🆕 Googleカレンダーに新規登録:', res.data.id);
   return res.data.id;
 }
+
 
 module.exports = {
   createCalendarEvent,
