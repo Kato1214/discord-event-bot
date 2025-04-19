@@ -1,7 +1,6 @@
-// googleCalendar.js
 const { google } = require('googleapis');
 
-const credJson    = Buffer.from(process.env.GOOGLE_CREDENTIALS_B64, 'base64').toString('utf8');
+const credJson = Buffer.from(process.env.GOOGLE_CREDENTIALS_B64, 'base64').toString('utf8');
 const credentials = JSON.parse(credJson);
 const CALENDAR_ID = 'aixnexus2025@gmail.com';
 
@@ -18,15 +17,15 @@ async function calendarClient() {
 async function createCalendarEvent(event) {
   const calendar = await calendarClient();
   const start = new Date(event.scheduledStartTimestamp);
-  const end   = new Date(start.getTime() + 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
 
   const res = await calendar.events.insert({
     calendarId: CALENDAR_ID,
     resource: {
-      summary:     event.name,
+      summary: event.name,
       description: event.description || '',
       start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
-      end:   { dateTime: end.toISOString(),   timeZone: 'Asia/Tokyo' },
+      end: { dateTime: end.toISOString(), timeZone: 'Asia/Tokyo' },
     },
   });
 
@@ -37,33 +36,42 @@ async function createCalendarEvent(event) {
 async function updateCalendarEvent(googleEventId, newEvent) {
   const calendar = await calendarClient();
   const start = new Date(newEvent.scheduledStartTimestamp);
-  const end   = new Date(start.getTime() + 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
 
   await calendar.events.update({
     calendarId: CALENDAR_ID,
-    eventId:    googleEventId,
+    eventId: googleEventId,
     resource: {
-      summary:     newEvent.name,
+      summary: newEvent.name,
       description: newEvent.description || '',
       start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
-      end:   { dateTime: end.toISOString(),   timeZone: 'Asia/Tokyo' },
+      end: { dateTime: end.toISOString(), timeZone: 'Asia/Tokyo' },
     },
   });
 
   console.log('🔁 Googleカレンダーを更新しました:', googleEventId);
 }
 
+async function deleteCalendarEvent(googleEventId) {
+  const calendar = await calendarClient();
+  await calendar.events.delete({
+    calendarId: CALENDAR_ID,
+    eventId: googleEventId,
+  });
+  console.log('🗑️ Googleカレンダーから削除しました:', googleEventId);
+}
+
 async function upsertCalendarEvent(discordEvent, googleEventId = null) {
   const calendar = await calendarClient();
 
   const start = new Date(discordEvent.scheduledStartTimestamp);
-  const end   = new Date(start.getTime() + 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
 
   const eventResource = {
     summary: discordEvent.name,
     description: discordEvent.description || '',
     start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
-    end:   { dateTime: end.toISOString(),   timeZone: 'Asia/Tokyo' },
+    end: { dateTime: end.toISOString(), timeZone: 'Asia/Tokyo' },
   };
 
   if (googleEventId) {
@@ -85,6 +93,13 @@ async function upsertCalendarEvent(discordEvent, googleEventId = null) {
     resource: eventResource,
   });
 
+  console.log('✅ Googleカレンダーに再登録:', res.data.htmlLink);
   return res.data.id;
 }
 
+module.exports = {
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+  upsertCalendarEvent,
+};
