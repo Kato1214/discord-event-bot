@@ -53,20 +53,38 @@ async function updateCalendarEvent(googleEventId, newEvent) {
   console.log('🔁 Googleカレンダーを更新しました:', googleEventId);
 }
 
-async function upsertCalendarEvent(event, existingEventId) {
-  if (existingEventId) {
+async function upsertCalendarEvent(discordEvent, googleEventId = null) {
+  const calendar = await calendarClient();
+
+  const start = new Date(discordEvent.scheduledStartTimestamp);
+  const end   = new Date(start.getTime() + 60 * 60 * 1000);
+
+  const eventResource = {
+    summary: discordEvent.name,
+    description: discordEvent.description || '',
+    start: { dateTime: start.toISOString(), timeZone: 'Asia/Tokyo' },
+    end:   { dateTime: end.toISOString(),   timeZone: 'Asia/Tokyo' },
+  };
+
+  if (googleEventId) {
     try {
-      await updateCalendarEvent(existingEventId, event);
-      return existingEventId;
-    } catch (err) {
-      console.warn('⚠️ 更新失敗 → 新規作成に切り替え:', err.message);
+      const res = await calendar.events.update({
+        calendarId: CALENDAR_ID,
+        eventId: googleEventId,
+        resource: eventResource,
+      });
+      return res.data.id;
+    } catch (e) {
+      console.error('⚠️ Googleイベントの更新に失敗したため、新規作成します:', e.message);
+      // fallback: insert new if update fails
     }
   }
-  return await createCalendarEvent(event);
+
+  const res = await calendar.events.insert({
+    calendarId: CALENDAR_ID,
+    resource: eventResource,
+  });
+
+  return res.data.id;
 }
 
-module.exports = {
-  createCalendarEvent,
-  updateCalendarEvent,
-  upsertCalendarEvent,
-};
