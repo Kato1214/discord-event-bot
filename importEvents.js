@@ -1,3 +1,15 @@
+const { downloadFile, uploadFile } = require('./driveClient');
+
+// Google Drive で使うファイルID（ユーザーのアップロード済みファイル）
+const DRIVE_FILE_ID = '1pbZAusgbk4XcE-3CUR6nRPBmf-ukn7nK';
+
+// イベント同期処理の直前で Drive から最新を取得
+await downloadFile(DRIVE_FILE_ID, 'eventMappings.json');
+
+// 同期完了後に Drive にアップロード
+fs.writeFileSync(mappingsPath, JSON.stringify(updatedMappings, null, 2));
+await uploadFile(DRIVE_FILE_ID, 'eventMappings.json');
+
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const fs = require('fs');
