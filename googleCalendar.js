@@ -1,11 +1,8 @@
 // googleCalendar.js
 const { google } = require('googleapis');
 
-/* ───── Google サービスアカウント認証 ───── */
 const credJson    = Buffer.from(process.env.GOOGLE_CREDENTIALS_B64, 'base64').toString('utf8');
 const credentials = JSON.parse(credJson);
-
-/* ★ ここをあなたの Gmail カレンダー ID に固定 ★ */
 const CALENDAR_ID = 'aixnexus2025@gmail.com';
 
 const auth = new google.auth.GoogleAuth({
@@ -13,16 +10,13 @@ const auth = new google.auth.GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/calendar'],
 });
 
-/* クライアント生成 */
 async function calendarClient() {
   const authClient = await auth.getClient();
   return google.calendar({ version: 'v3', auth: authClient });
 }
 
-/* 1. 作成 */
 async function createCalendarEvent(event) {
   const calendar = await calendarClient();
-
   const start = new Date(event.scheduledStartTimestamp);
   const end   = new Date(start.getTime() + 60 * 60 * 1000);
 
@@ -40,10 +34,8 @@ async function createCalendarEvent(event) {
   return res.data.id;
 }
 
-/* 2. 更新 */
 async function updateCalendarEvent(googleEventId, newEvent) {
   const calendar = await calendarClient();
-
   const start = new Date(newEvent.scheduledStartTimestamp);
   const end   = new Date(start.getTime() + 60 * 60 * 1000);
 
@@ -61,15 +53,20 @@ async function updateCalendarEvent(googleEventId, newEvent) {
   console.log('🔁 Googleカレンダーを更新しました:', googleEventId);
 }
 
-/* 3. 削除 */
-async function deleteCalendarEvent(googleEventId) {
-  const calendar = await calendarClient();
-  await calendar.events.delete({ calendarId: CALENDAR_ID, eventId: googleEventId });
-  console.log('🗑️ Googleカレンダーから削除しました:', googleEventId);
+async function upsertCalendarEvent(event, existingEventId) {
+  if (existingEventId) {
+    try {
+      await updateCalendarEvent(existingEventId, event);
+      return existingEventId;
+    } catch (err) {
+      console.warn('⚠️ 更新失敗 → 新規作成に切り替え:', err.message);
+    }
+  }
+  return await createCalendarEvent(event);
 }
 
 module.exports = {
   createCalendarEvent,
   updateCalendarEvent,
-  deleteCalendarEvent,
+  upsertCalendarEvent,
 };
