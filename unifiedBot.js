@@ -210,7 +210,12 @@ const discordClient = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIn
 discordClient.on('guildScheduledEventCreate', async (event) => {
   const channel = event.guild.channels.cache.find(ch => ch.name === 'イベントのお知らせ' && ch.isTextBased());
   if (!channel) return;
+  
   try {
+    // メンバー取得（待機付き）
+    await event.guild.members.fetch();
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待機
+
     const gEventId = await createCalendarEvent(event);
     const map = await loadMappings();
     map[event.id] = gEventId;
@@ -226,6 +231,7 @@ discordClient.on('guildScheduledEventCreate', async (event) => {
   }]});
   await channel.send(event.url);
 });
+
 
 discordClient.on('guildScheduledEventUpdate', async (oldEvent, newEvent) => {
   const channel = newEvent.guild.channels.cache.find(ch => ch.name === 'イベントのお知らせ' && ch.isTextBased());
