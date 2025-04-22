@@ -214,7 +214,7 @@ discordClient.on('guildScheduledEventCreate', async (event) => {
   try {
     // メンバー取得（待機付き）
     await event.guild.members.fetch();
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待機
+    await new Promise(resolve => setTimeout(resolve, 5000)); // 5秒待機    
 
     const gEventId = await createCalendarEvent(event);
     const map = await loadMappings();
