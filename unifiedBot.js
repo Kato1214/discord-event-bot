@@ -271,6 +271,59 @@ discordClient.on('guildScheduledEventDelete', async (event) => {
   } catch (e) { console.error('❌ Googleカレンダー削除エラー:', e.message); }
 });
 
+// ----- メンバー同期機能（GAS連携） -----
+async function syncMembersToGAS() {
+  const guild = discordClient.guilds.cache.get(process.env.GUILD_ID);
+  if (!guild) {
+    console.error('❌ 指定されたGUILD_IDのサーバーにBotが参加していません');
+    return;
+  }
+
+  await guild.members.fetch(); // 全メンバーをキャッシュ
+
+  const members = guild.members.cache.map(member => ({
+    username: `${member.user.username}#${member.user.discriminator}`,
+    id: member.user.id,
+    joinedAt: member.joinedAt ? member.joinedAt.toISOString().split('T')[0] : '',
+    roles: member.roles.cache
+      .filter(role => role.name !== '@everyone')
+      .map(role => role.name)
+  }));
+
+  const res = await fetch(process.env.GAS_WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(members)
+  });
+
+  console.log('✅ メンバー情報送信完了：', await res.text());
+}
+
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+// 🔗 GASからのWebhookを受け取るエンドポイント
+app.post('/sync-members', async (req, res) => {
+  console.log('📥 GASから同期リクエスト受信');
+  try {
+    await discordClient.login(process.env.TOKEN);
+    await syncMembersToGAS();
+    discordClient.destroy();
+    res.status(200).send('✅ 同期完了');
+  } catch (e) {
+    console.error('❌ 同期エラー:', e.message);
+    res.status(500).send('❌ 同期失敗');
+  }
+});
+
+// ポート指定
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🌐 Webhookサーバー起動中：ポート${PORT}`);
+});
+
+
 // ----- Main Command Dispatcher -----
 (async () => {
   const [,, cmd] = process.argv;
@@ -314,8 +367,19 @@ discordClient.on('guildScheduledEventDelete', async (event) => {
       await manageMarks('unmark');
       process.exit(0);
 
+    case 'syncMembers':
+      discordClient.once('ready', async () => {
+      console.log('🟡 メンバー同期開始');
+      await syncMembersToGAS();
+      process.exit(0);
+    });
+      await discordClient.login(process.env.TOKEN);
+      break;
+
+
     default:
       console.log(`使い方: node ${path.basename(process.argv[1])} <sync|serve|cleanMappings|mark|unmark>`);
       process.exit(1);
   }
 })();
+
